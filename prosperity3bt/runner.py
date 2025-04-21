@@ -141,6 +141,36 @@ def enforce_limits(
     if len(sandbox_log_lines) > 0:
         sandbox_row.sandbox_log += "\n" + "\n".join(sandbox_log_lines)
 
+def enforce_conversion_limits(state: TradingState, data: BacktestData, conversions: int) -> int:
+     product = "MAGNIFICENT_MACARONS"
+     conversion_limit = 10
+     if product in data.products:
+         product_position = state.position.get(product, 0)
+         if abs(conversions) > conversion_limit or ((conversions > 0 and product_position > -conversions) or (conversions < 0 and product_position < -conversions)):
+             conversions = 0
+     return conversions
+ 
+ def process_conversions(conversions: int, data: BacktestData, state: TradingState) -> None:
+     symbol = "MAGNIFICENT_MACARONS"
+     
+     if conversions == 0:
+         return
+ 
+     obs = state.observations.conversionObservations.get(symbol, None)
+     if obs is None:
+         return
+     
+     if conversions > 0:
+         price = obs.askPrice 
+         extra_cost = obs.importTariff + obs.transportFees
+     if conversions < 0:
+         price = obs.bidPrice 
+         extra_cost = obs.exportTariff + obs.transportFees
+     
+     state.position[symbol] = state.position.get(symbol, 0) + conversions 
+     data.profit_loss[symbol] -= price * conversions 
+     data.profit_loss[symbol] -= extra_cost * abs(conversions)
+
 
 def match_buy_order(
     state: TradingState,
